@@ -223,8 +223,8 @@ start_instance() {
 	# uci_validate_section() aka /sbin/validate_data can only cast default values not defined in /etc/config/* to string 
 	# e.g. ="1" however it sets bools defined in /etc/config/* to =1 / =0
 	[ "$auth" = 1 -o "$auth" = "1" ] && procd_append_param command "-a"
-	[ -n "$disks_arg" ] && procd_append_param command "-d $disks_arg" 
-	[ -n "$interfaces_arg" ] && procd_append_param command "-i $interfaces_arg"
+	[ -n "$disks_arg" ] && procd_append_param command "-d" "$disks_arg"
+	[ -n "$interfaces_arg" ] && procd_append_param command "-i" "$interfaces_arg"
 	[ -n "$listen_interface_device" ] && {
 		 procd_append_param command "-I" "$listen_interface_device"
 		 # and this monitors the hardware device for changes outside of ubus - just a guess
