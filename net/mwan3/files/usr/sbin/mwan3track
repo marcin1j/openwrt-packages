@@ -37,6 +37,7 @@ main() {
 	trap if_down SIGUSR1
 
 	config_load mwan3
+	config_get track_method $1 track_method ping
 	config_get reliability $1 reliability 1
 	config_get count $1 count 1
 	config_get timeout $1 timeout 4
@@ -48,7 +49,7 @@ main() {
 	config_get recovery_interval $1 recovery_interval $interval
 
 	local score=$(($down+$up))
-	local track_ips=$(echo $* | cut -d ' ' -f 3-99)
+	local track_ips=$(echo $* | cut -d ' ' -f 4-99)
 	local host_up_count=0
 	local lost=0
 	local sleep_time=0
@@ -60,7 +61,18 @@ main() {
 		sleep_time=$interval
 
 		for track_ip in $track_ips; do
-			ping -I $2 -c $count -W $timeout -s $size -q $track_ip &> /dev/null
+			case "$track_method" in
+				ping)
+					ping -I $2 -c $count -W $timeout -s $size -q $track_ip &> /dev/null ;;
+				arping)
+					arping -I $2 -c $count -w $timeout -q $track_ip &> /dev/null ;;
+				httping)
+					httping -y $3 -c $count -t $timeout -q $track_ip &> /dev/null ;;
+				*)
+					$LOG warn "Unsupported tracking method: $track_method"
+					false
+					;;
+			esac
 			if [ $? -eq 0 ]; then
 				let host_up_count++
 				echo "up" > /var/run/mwan3track/$1/TRACK_${track_ip}
