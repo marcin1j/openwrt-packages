@@ -1,0 +1,33 @@
+commit b1935a982aa68890ffe888381f7905f57c6b055d
+Author: Matthias Gerstner <Matthias.Gerstner@nefkom.net>
+Date:   Tue Feb 20 23:33:18 2018 +0100
+
+    get_local_realms: work around strange duplication of local_realms
+    
+    The hidden visibility seems to cause the get_local_realms() function to
+    return a NULL pointer, although the local_realms global variable is
+    actually assigned. Assembler code shows there are two instances of this
+    variable around, one set to NULL, the other to the expected value.
+    
+    This happened on Gentoo Hardened with gcc 4.6.0-r1.
+
+diff --git a/support/nfsidmap/nfsidmap_common.c b/support/nfsidmap/nfsidmap_common.c
+index 891c855..e5c33a8 100644
+--- a/support/nfsidmap/nfsidmap_common.c
++++ b/support/nfsidmap/nfsidmap_common.c
+@@ -19,13 +19,13 @@
+ #include "nfsidmap_plugin.h"
+ #include "conffile.h"
+ 
+-#pragma GCC visibility push(hidden)
+-
+ int reformat_group = 0;
+ int no_strip = 0;
+ 
+ struct conf_list *local_realms;
+ 
++#pragma GCC visibility push(hidden)
++
+ struct conf_list *get_local_realms(void)
+ {
+ 	return local_realms;

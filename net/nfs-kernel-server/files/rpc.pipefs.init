@@ -1,0 +1,16 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2018 OpenWrt.org
+
+START=90
+STOP=70
+
+PIPE_D=/var/lib/nfs/rpc_pipefs
+
+start() {
+	mkdir -p $PIPE_D
+	mount -t rpc_pipefs rpc_pipefs $PIPE_D
+}
+
+stop() {
+	umount $PIPE_D
+}

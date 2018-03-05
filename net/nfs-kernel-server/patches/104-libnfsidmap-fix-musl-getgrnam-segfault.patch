@@ -1,0 +1,108 @@
+--- a/support/nfsidmap/libnfsidmap.c
++++ b/support/nfsidmap/libnfsidmap.c
+@@ -481,7 +481,7 @@ int nfs4_init_name_mapping(char *conffil
+ 
+ 	nobody_user = conf_get_str("Mapping", "Nobody-User");
+ 	if (nobody_user) {
+-		size_t buflen = sysconf(_SC_GETPW_R_SIZE_MAX);
++		size_t buflen = fix_sysconf_bufsize(sysconf(_SC_GETPW_R_SIZE_MAX));
+ 		struct passwd *buf;
+ 		struct passwd *pw = NULL;
+ 		int err;
+@@ -502,7 +502,7 @@ int nfs4_init_name_mapping(char *conffil
+ 
+ 	nobody_group = conf_get_str("Mapping", "Nobody-Group");
+ 	if (nobody_group) {
+-		size_t buflen = sysconf(_SC_GETGR_R_SIZE_MAX);
++		size_t buflen = fix_sysconf_bufsize(sysconf(_SC_GETGR_R_SIZE_MAX));
+ 		struct group *buf;
+ 		struct group *gr = NULL;
+ 		int err;
+--- a/support/nfsidmap/gums.c
++++ b/support/nfsidmap/gums.c
+@@ -475,7 +475,7 @@ static int translate_to_uid(char *local_
+ 	int ret = -1;
+ 	struct passwd *pw = NULL;
+ 	struct pwbuf *buf = NULL;
+-	size_t buflen = sysconf(_SC_GETPW_R_SIZE_MAX);
++	size_t buflen = fix_sysconf_bufsize(sysconf(_SC_GETPW_R_SIZE_MAX));
+ 
+ 	buf = malloc(sizeof(*buf) + buflen);
+ 	if (buf == NULL)
+@@ -501,7 +501,7 @@ static int translate_to_gid(char *local_
+ 	struct group *gr = NULL;
+ 	struct group grbuf;
+ 	char *buf = NULL;
+-	size_t buflen = sysconf(_SC_GETGR_R_SIZE_MAX);
++	size_t buflen = fix_sysconf_bufsize(sysconf(_SC_GETGR_R_SIZE_MAX));
+ 	int ret = -1;
+ 
+ 	do {
+--- a/support/nfsidmap/nfsidmap_private.h
++++ b/support/nfsidmap/nfsidmap_private.h
+@@ -53,3 +53,7 @@ struct mapping_plugin {
+ 	void *dl_handle;
+ 	struct trans_func *trans;
+ };
++
++static long fix_sysconf_bufsize(long size) {
++	return (size < 0) ? 256 : size;
++}
+--- a/support/nfsidmap/nss.c
++++ b/support/nfsidmap/nss.c
+@@ -90,7 +90,7 @@ static int nss_uid_to_name(uid_t uid, ch
+ 	struct passwd *pw = NULL;
+ 	struct passwd pwbuf;
+ 	char *buf;
+-	size_t buflen = sysconf(_SC_GETPW_R_SIZE_MAX);
++	size_t buflen = fix_sysconf_bufsize(sysconf(_SC_GETPW_R_SIZE_MAX));
+ 	int err = -ENOMEM;
+ 
+ 	buf = malloc(buflen);
+@@ -118,7 +118,7 @@ static int nss_gid_to_name(gid_t gid, ch
+ 	struct group *gr = NULL;
+ 	struct group grbuf;
+ 	char *buf;
+-	size_t buflen = sysconf(_SC_GETGR_R_SIZE_MAX);
++	size_t buflen = fix_sysconf_bufsize(sysconf(_SC_GETGR_R_SIZE_MAX));
+ 	int err;
+ 
+ 	if (domain == NULL)
+@@ -191,7 +191,7 @@ static struct passwd *nss_getpwnam(const
+ {
+ 	struct passwd *pw;
+ 	struct pwbuf *buf;
+-	size_t buflen = sysconf(_SC_GETPW_R_SIZE_MAX);
++	size_t buflen = fix_sysconf_bufsize(sysconf(_SC_GETPW_R_SIZE_MAX));
+ 	char *localname;
+ 	int err = ENOMEM;
+ 
+@@ -300,7 +300,7 @@ static int _nss_name_to_gid(char *name,
+ 	struct group *gr = NULL;
+ 	struct group grbuf;
+ 	char *buf, *domain;
+-	size_t buflen = sysconf(_SC_GETGR_R_SIZE_MAX);
++	size_t buflen = fix_sysconf_bufsize(sysconf(_SC_GETGR_R_SIZE_MAX));
+ 	int err = -EINVAL;
+ 	char *localname = NULL;
+ 	char *ref_name = NULL;
+--- a/support/nfsidmap/static.c
++++ b/support/nfsidmap/static.c
+@@ -98,7 +98,7 @@ static struct passwd *static_getpwnam(co
+ {
+ 	struct passwd *pw;
+ 	struct pwbuf *buf;
+-	size_t buflen = sysconf(_SC_GETPW_R_SIZE_MAX);
++	size_t buflen = fix_sysconf_bufsize(sysconf(_SC_GETPW_R_SIZE_MAX));
+ 	char *localname;
+ 	int err;
+ 
+@@ -149,7 +149,7 @@ static struct group *static_getgrnam(con
+ {
+ 	struct group *gr;
+ 	struct grbuf *buf;
+-	size_t buflen = sysconf(_SC_GETGR_R_SIZE_MAX);
++	size_t buflen = fix_sysconf_bufsize(sysconf(_SC_GETGR_R_SIZE_MAX));
+ 	char *localgroup;
+ 	int err;
+ 
