@@ -70,7 +70,8 @@ CONFIGURE_VARS += \
 	ac_cv_func_regcomp=yes \
 	ac_cv_printf_positional=yes \
 	ac_cv_file__etc_environment=no \
-	ac_cv_file__etc_TIMEZONE=no
+	ac_cv_file__etc_TIMEZONE=no \
+	ac_cv_header_keyutils_h=no
 
 CONFIGURE_ARGS += \
 	--without-system-verto \
