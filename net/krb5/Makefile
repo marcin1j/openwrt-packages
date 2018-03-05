@@ -39,8 +39,7 @@ endef
 define Package/krb5-libs
 	SECTION:=net
 	CATEGORY:=Network
-	TITLE:=Kerberos
-	DEPENDS:=+libncurses
+	DEPENDS:=+libcom_err
 	TITLE:=Kerberos 5 Shared Libraries
 	URL:=http://web.mit.edu/kerberos/
 endef
@@ -61,6 +60,8 @@ define Package/krb5/description
 	Kerberos
 endef
 
+TARGET_CFLAGS += -I$(STAGING_DIR)/usr/include/et
+
 CONFIGURE_PATH = ./src
 
 CONFIGURE_VARS += \
@@ -78,7 +79,8 @@ CONFIGURE_ARGS += \
 	--localstatedir=/etc \
 	--with-size-optimizations \
 	--disable-rpath \
-	--without-krb5-config
+	--without-krb5-config \
+	--with-system-et
 
 define Build/InstallDev
 	$(INSTALL_DIR) $(1)/usr/include
