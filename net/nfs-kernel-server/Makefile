@@ -18,7 +18,7 @@ HOST_BUILD_DIR:=$(BUILD_DIR_HOST)/nfs-utils-$(PKG_VERSION)
 PKG_BUILD_DIR:=$(BUILD_DIR)/nfs-utils-$(PKG_VERSION)
 PKG_INSTALL:=1
 PKG_BUILD_PARALLEL:=1
-PKG_BUILD_DEPENDS:=$(PKG_NAME)/host
+PKG_BUILD_DEPENDS:=$(PKG_NAME)/host keyutils
 
 include $(INCLUDE_DIR)/host-build.mk
 include $(INCLUDE_DIR)/package.mk
@@ -29,6 +29,16 @@ define Package/nfs-kernel-server/Default
   SUBMENU:=Filesystem
   DEPENDS:=+libwrap +libblkid +libuuid $(LIBRPC_DEPENDS)
   URL:=http://nfs.sourceforge.net/
+  MAINTAINER:=Peter Wagner <tripolar@gmx.at>
+endef
+
+define Package/nfs-utils/Default
+  SECTION:=net
+  CATEGORY:=Network
+  SUBMENU:=Filesystem
+  DEPENDS:=+libevent2 $(LIBRPC_DEPENDS)
+  URL:=http://nfs.sourceforge.net/
+  TITLE:=NFS client and server daemons
   MAINTAINER:=Peter Wagner <tripolar@gmx.at>
 endef
 
@@ -75,14 +85,15 @@ TARGET_LDFLAGS += -Wl,-rpath-link=$(STAGING_DIR)/usr/lib $(LIBRPC) \
 
 CONFIGURE_ARGS += \
 	--disable-gss \
-	--disable-nfsv4 \
+	--enable-nfsv4 \
 	--disable-nfsv41 \
 	--disable-ipv6 \
 	--enable-static \
 	--enable-shared \
 	--disable-caps \
 	--disable-tirpc \
-	--disable-nfsdcld
+	--disable-nfsdcld \
+	--disable-nfsdcltrack
 
 CONFIGURE_VARS += \
 	libblkid_cv_is_recent=yes \
@@ -153,7 +164,46 @@ define Package/nfs-utils/install
 	(cd $(1)/sbin; ln -sf mount.nfs mount.nfs4; ln -sf mount.nfs umount.nfs; ln -sf mount.nfs umount.nfs4)
 endef
 
+define Package/nfs-utils-rpc-pipefs
+  $(call Package/nfs-utils/Default)
+  TITLE+=rpc.pipefs
+  DEPENDS:=+kmod-fs-nfs-common
+endef
+
+define Package/nfs-utils-rpc-pipefs/install
+	$(INSTALL_DIR) $(1)/etc/init.d
+	$(INSTALL_BIN) ./files/rpc.pipefs.init $(1)/etc/init.d/rpc.pipefs
+endef
+
+define Package/nfs-utils-rpc-idmapd
+  $(call Package/nfs-utils/Default)
+  TITLE+=rpc.idmapd
+  DEPENDS+=+portmap +nfs-utils-rpc-pipefs
+endef
+
+define Package/nfs-utils-rpc-idmapd/conffiles
+/etc/idmapd.conf
+endef
+
+define Package/nfs-utils-rpc-idmapd/install
+	$(INSTALL_DIR) $(1)/etc
+	$(INSTALL_DATA) $(PKG_BUILD_DIR)/support/nfsidmap/idmapd.conf $(1)/etc/idmapd.conf
+
+	$(INSTALL_DIR) $(1)/etc/init.d
+	$(INSTALL_BIN) ./files/rpc.idmapd.init $(1)/etc/init.d/rpc.idmapd
+
+	$(INSTALL_DIR) $(1)/usr/sbin
+	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/sbin/rpc.idmapd $(1)/usr/sbin/rpc.idmapd
+
+	$(INSTALL_DIR) $(1)/usr/lib
+	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libnfsidmap.so* $(1)/usr/lib
+	$(INSTALL_DIR) $(1)/usr/lib/libnfsidmap
+	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libnfsidmap/*.so* $(1)/usr/lib/libnfsidmap
+endef
+
 $(eval $(call HostBuild))
 $(eval $(call BuildPackage,nfs-kernel-server))
 $(eval $(call BuildPackage,nfs-kernel-server-utils))
 $(eval $(call BuildPackage,nfs-utils))
+$(eval $(call BuildPackage,nfs-utils-rpc-pipefs))
+$(eval $(call BuildPackage,nfs-utils-rpc-idmapd))
