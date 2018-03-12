@@ -32,6 +32,13 @@ define Package/nfs-kernel-server/Default
   MAINTAINER:=Peter Wagner <tripolar@gmx.at>
 endef
 
+define Package/nfs-utils/Default
+  SECTION:=utils
+  CATEGORY:=Utilities
+  DEPENDS+= +libevent2 +USE_UCLIBC:librpc $(LIBRPC_DEPENDS)
+  TITLE:=NFS utils:
+endef
+
 define Package/nfs-utils-daemon/Default
   SECTION:=net
   CATEGORY:=Network
@@ -52,31 +59,20 @@ define Package/nfs-kernel-server/description
   Kernel NFS server support
 endef
 
+define Package/nfs-kernel-server/conffiles
+/etc/exports
+endef
+
 define Package/nfs-kernel-server-utils
   $(call Package/nfs-kernel-server/Default)
   TITLE:=NFS server utils
-  DEPENDS:=nfs-kernel-server
+  DEPENDS:=nfs-utils-showmount nfs-utils-nfsstat
 endef
 
 define Package/nfs-kernel-server-utils/description
   NFS server utils
 endef
 
-define Package/nfs-kernel-server/conffiles
-/etc/exports
-endef
-
-define Package/nfs-utils
-  $(call Package/nfs-kernel-server/Default)
-  SECTION:=utils
-  CATEGORY:=Utilities
-  DEPENDS+= +libevent2 +USE_UCLIBC:librpc
-  TITLE:=updated mount utility (includes nfs4)
-endef
-
-define Package/nfs-utils/description
-  Updated mount.nfs command - allows mounting nfs4 volumes
-endef
 
 TARGET_CFLAGS += -I$(PKG_BUILD_DIR)/lib -I$(STAGING_DIR)/usr/include/libevent \
 		 -I$(STAGING_DIR)/usr/include/ -Drpc_uint=uint
@@ -153,16 +149,39 @@ define Package/nfs-kernel-server/install
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/utils/exportfs/exportfs $(1)/usr/sbin/
 endef
 
-define Package/nfs-kernel-server-utils/install
+define Package/nfs-utils-nfsstat
+  $(call Package/nfs-utils/Default)
+  TITLE+=/usr/sbin/nfsstat
+endef
+define Package/nfs-utils-nfsstat/install
 	$(INSTALL_DIR) $(1)/usr/sbin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/utils/showmount/showmount $(1)/usr/sbin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/utils/nfsstat/nfsstat $(1)/usr/sbin
 endef
 
-define Package/nfs-utils/install
+
+define Package/nfs-utils-showmount
+  $(call Package/nfs-utils/Default)
+  TITLE+=/usr/sbin/showmount
+  DEPENDS+=+libtirpc
+endef
+define Package/nfs-utils-showmount/install
+	$(INSTALL_DIR) $(1)/usr/sbin
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/utils/showmount/showmount $(1)/usr/sbin
+endef
+
+define Package/nfs-utils-mount
+  $(call Package/nfs-utils/Default)
+  TITLE+=/sbin/mount.nfs and /sbin/mount.nfs4
+  DEPENDS+=+libtirpc
+endef
+define Package/nfs-utils-mount/install
 	$(INSTALL_DIR) $(1)/sbin
 	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/sbin/mount.nfs $(1)/sbin/
 	(cd $(1)/sbin; ln -sf mount.nfs mount.nfs4; ln -sf mount.nfs umount.nfs; ln -sf mount.nfs umount.nfs4)
+endef
+
+define Package/nfs-utils-mount/description
+  Updated mount.nfs command - allows mounting nfs4 volumes
 endef
 
 define Package/nfs-utils-rpc-pipefs
@@ -233,7 +252,10 @@ endef
 $(eval $(call HostBuild))
 $(eval $(call BuildPackage,nfs-kernel-server))
 $(eval $(call BuildPackage,nfs-kernel-server-utils))
-$(eval $(call BuildPackage,nfs-utils))
+
+$(eval $(call BuildPackage,nfs-utils-nfsstat))
+$(eval $(call BuildPackage,nfs-utils-showmount))
+$(eval $(call BuildPackage,nfs-utils-mount))
 $(eval $(call BuildPackage,nfs-utils-rpc-pipefs))
 $(eval $(call BuildPackage,nfs-utils-rpc-idmapd))
 $(eval $(call BuildPackage,nfs-utils-rpc-gssd))
