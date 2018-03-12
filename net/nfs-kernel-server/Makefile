@@ -18,7 +18,7 @@ HOST_BUILD_DIR:=$(BUILD_DIR_HOST)/nfs-utils-$(PKG_VERSION)
 PKG_BUILD_DIR:=$(BUILD_DIR)/nfs-utils-$(PKG_VERSION)
 PKG_INSTALL:=1
 PKG_BUILD_PARALLEL:=1
-PKG_BUILD_DEPENDS:=$(PKG_NAME)/host keyutils
+PKG_BUILD_DEPENDS:=$(PKG_NAME)/host keyutils krb5 libtirpc
 
 include $(INCLUDE_DIR)/host-build.mk
 include $(INCLUDE_DIR)/package.mk
@@ -27,12 +27,12 @@ define Package/nfs-kernel-server/Default
   SECTION:=net
   CATEGORY:=Network
   SUBMENU:=Filesystem
-  DEPENDS:=+libwrap +libblkid +libuuid $(LIBRPC_DEPENDS)
+  DEPENDS:=+libwrap +libblkid +libuuid $(LIBRPC_DEPENDS) +libtirpc
   URL:=http://nfs.sourceforge.net/
   MAINTAINER:=Peter Wagner <tripolar@gmx.at>
 endef
 
-define Package/nfs-utils/Default
+define Package/nfs-utils-daemon/Default
   SECTION:=net
   CATEGORY:=Network
   SUBMENU:=Filesystem
@@ -84,14 +84,15 @@ TARGET_LDFLAGS += -Wl,-rpath-link=$(STAGING_DIR)/usr/lib $(LIBRPC) \
 		  -L$(STAGING_DIR)/usr/lib/libevent
 
 CONFIGURE_ARGS += \
-	--disable-gss \
+	--enable-gss \
 	--enable-nfsv4 \
 	--disable-nfsv41 \
 	--disable-ipv6 \
 	--enable-static \
 	--enable-shared \
 	--disable-caps \
-	--disable-tirpc \
+	--enable-tirpc \
+	--enable-svcgss \
 	--disable-nfsdcld \
 	--disable-nfsdcltrack
 
@@ -165,7 +166,7 @@ define Package/nfs-utils/install
 endef
 
 define Package/nfs-utils-rpc-pipefs
-  $(call Package/nfs-utils/Default)
+  $(call Package/nfs-utils-daemon/Default)
   TITLE+=rpc.pipefs
   DEPENDS:=+kmod-fs-nfs-common
 endef
@@ -176,7 +177,7 @@ define Package/nfs-utils-rpc-pipefs/install
 endef
 
 define Package/nfs-utils-rpc-idmapd
-  $(call Package/nfs-utils/Default)
+  $(call Package/nfs-utils-daemon/Default)
   TITLE+=rpc.idmapd
   DEPENDS+=+portmap +nfs-utils-rpc-pipefs
 endef
@@ -201,9 +202,39 @@ define Package/nfs-utils-rpc-idmapd/install
 	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libnfsidmap/*.so* $(1)/usr/lib/libnfsidmap
 endef
 
+define Package/nfs-utils-rpc-gssd
+  $(call Package/nfs-utils-daemon/Default)
+  TITLE+=rpc.gssd
+  DEPENDS+=+libtirpc +krb5-libs +portmap +nfs-utils-rpc-pipefs
+endef
+
+define Package/nfs-utils-rpc-gssd/install
+	$(INSTALL_DIR) $(1)/etc/init.d
+	$(INSTALL_BIN) ./files/rpc.gssd.init $(1)/etc/init.d/rpc.gssd
+
+	$(INSTALL_DIR) $(1)/usr/sbin
+	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/sbin/rpc.gssd $(1)/usr/sbin/rpc.gssd
+endef
+
+define Package/nfs-utils-rpc-svcgssd
+  $(call Package/nfs-utils-daemon/Default)
+  TITLE+=rpc.svcgssd
+  DEPENDS+=+libtirpc +krb5-libs +portmap +nfs-utils-rpc-idmapd
+endef
+
+define Package/nfs-utils-rpc-svcgssd/install
+	$(INSTALL_DIR) $(1)/etc/init.d
+	$(INSTALL_BIN) ./files/rpc.svcgssd.init $(1)/etc/init.d/rpc.svcgssd
+
+	$(INSTALL_DIR) $(1)/usr/sbin
+	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/sbin/rpc.svcgssd $(1)/usr/sbin/rpc.svcgssd
+endef
+
 $(eval $(call HostBuild))
 $(eval $(call BuildPackage,nfs-kernel-server))
 $(eval $(call BuildPackage,nfs-kernel-server-utils))
 $(eval $(call BuildPackage,nfs-utils))
 $(eval $(call BuildPackage,nfs-utils-rpc-pipefs))
 $(eval $(call BuildPackage,nfs-utils-rpc-idmapd))
+$(eval $(call BuildPackage,nfs-utils-rpc-gssd))
+$(eval $(call BuildPackage,nfs-utils-rpc-svcgssd))
