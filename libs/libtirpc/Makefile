@@ -28,10 +28,9 @@ define Package/libtirpc
   CATEGORY:=Libraries
   TITLE:=Library TI RPC for RPC bindings
   URL:=http://libtirpc.sourceforge.net/
-  DEPENDS:=+libpthread
+  DEPENDS:=+libpthread +krb5-libs
 endef
 
-CONFIGURE_ARGS += --disable-gssapi
 # Info from Buildroot Makefile
 # getrpcby{number,name} are only provided if 'GQ' is defined
 TARGET_CFLAGS += -DGQ
