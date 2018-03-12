@@ -18,7 +18,7 @@ HOST_BUILD_DIR:=$(BUILD_DIR_HOST)/nfs-utils-$(PKG_VERSION)
 PKG_BUILD_DIR:=$(BUILD_DIR)/nfs-utils-$(PKG_VERSION)
 PKG_INSTALL:=1
 PKG_BUILD_PARALLEL:=1
-PKG_BUILD_DEPENDS:=$(PKG_NAME)/host keyutils krb5 libtirpc
+PKG_BUILD_DEPENDS:=$(PKG_NAME)/host keyutils krb5 librpcsecgss
 
 include $(INCLUDE_DIR)/host-build.mk
 include $(INCLUDE_DIR)/package.mk
@@ -27,7 +27,7 @@ define Package/nfs-kernel-server/Default
   SECTION:=net
   CATEGORY:=Network
   SUBMENU:=Filesystem
-  DEPENDS:=+libwrap +libblkid +libuuid $(LIBRPC_DEPENDS) +libtirpc
+  DEPENDS:=+libwrap +libblkid +libuuid +libgssglue $(LIBRPC_DEPENDS)
   URL:=http://nfs.sourceforge.net/
   MAINTAINER:=Peter Wagner <tripolar@gmx.at>
 endef
@@ -91,8 +91,9 @@ CONFIGURE_ARGS += \
 	--enable-static \
 	--enable-shared \
 	--disable-caps \
-	--enable-tirpc \
+	--disable-tirpc \
 	--enable-svcgss \
+	--with-gssglue \
 	--disable-nfsdcld \
 	--disable-nfsdcltrack
 
@@ -205,7 +206,7 @@ endef
 define Package/nfs-utils-rpc-gssd
   $(call Package/nfs-utils-daemon/Default)
   TITLE+=rpc.gssd
-  DEPENDS+=+libtirpc +krb5-libs +portmap +nfs-utils-rpc-pipefs
+  DEPENDS+=+krb5-libs +librpcsecgss +portmap +nfs-utils-rpc-pipefs
 endef
 
 define Package/nfs-utils-rpc-gssd/install
@@ -219,7 +220,7 @@ endef
 define Package/nfs-utils-rpc-svcgssd
   $(call Package/nfs-utils-daemon/Default)
   TITLE+=rpc.svcgssd
-  DEPENDS+=+libtirpc +krb5-libs +portmap +nfs-utils-rpc-idmapd
+  DEPENDS+=+krb5-libs +librpcsecgss +portmap +nfs-utils-rpc-idmapd
 endef
 
 define Package/nfs-utils-rpc-svcgssd/install
