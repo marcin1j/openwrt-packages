@@ -41,7 +41,14 @@ TARGET_CFLAGS += -DGQ
 
 #EXTRA_LDFLAGS := -lgssapi_krb5
 
+define Package/libtirpc/conffiles
+/etc/netconfig
+endef
+
 define Package/libtirpc/install
+	$(INSTALL_DIR) $(1)/etc
+	$(INSTALL_DATA) $(PKG_INSTALL_DIR)/etc/netconfig $(1)/etc/netconfig
+
 	$(INSTALL_DIR) $(1)/usr/lib
 	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libtirpc.so* $(1)/usr/lib
 endef
