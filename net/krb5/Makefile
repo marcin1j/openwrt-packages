@@ -25,6 +25,8 @@ PKG_INSTALL:=1
 PKG_CHECK_FORMAT_SECURITY:=0
 PKG_USE_MIPS16:=0
 
+PKG_BUILD_DEPENDS:=e2fsprogs/host
+
 include $(INCLUDE_DIR)/package.mk
 
 MAKE_PATH:=src
@@ -39,7 +41,7 @@ endef
 define Package/krb5-libs
 	SECTION:=net
 	CATEGORY:=Network
-	DEPENDS:=+libcom_err
+	DEPENDS:=+libcomerr +libss
 	TITLE:=Kerberos 5 Shared Libraries
 	URL:=http://web.mit.edu/kerberos/
 endef
@@ -81,7 +83,8 @@ CONFIGURE_ARGS += \
 	--with-size-optimizations \
 	--disable-rpath \
 	--without-krb5-config \
-	--with-system-et
+	--with-system-et \
+	--with-system-ss \
 
 define Build/InstallDev
 	$(INSTALL_DIR) $(1)/usr/include
