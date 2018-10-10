@@ -48,8 +48,7 @@ mini_snmpd_validation="enabled:bool:0 \
 # in syslog
 
 append_disk() {
-	local disk="$1" disk_count
-	[ -z $disk_count ] && disk_count=0
+	local disk="$1"
 
 	grep -qF "$disk" /proc/mounts || {
 		_err "$cfg: mountpoint $disk for snmp monitoring not mounted, ignoring."
@@ -63,51 +62,32 @@ append_disk() {
 		return 1
 	}
 
-	[ $disk_count -ge 4 ] && {
-		_err "$cfg: more than 4 mountpoints defined in uci. Disc $disk ignored."
-		return
-	}
-
 	append disks_arg "$disk" ','
-	disk_count=$((disk_count++))
 }
 
 append_interface() {
-	local name="$1" netdev netdev_count
-	[ -z $netdev_count ] && netdev_count=0
+	local iface="$1"
+	local netdev
 
 	# for the purposes of snmp monitoring it doesn't need to be up, it just needs to exist in /proc/net/dev
-	network_get_device netdev "$name"
+	network_get_device netdev "$iface"
 	[ -n "$netdev" ] && grep -qF "$netdev" /proc/net/dev || {
-		 _log "$cfg: physical interface for network $name not found in uci or kernel so not monitoring"
+		 _log "$cfg: physical interface for network $iface not found in uci or kernel so not monitoring"
 		 return
 	}
 
-	[ $netdev_count -ge 4 ] && {
-		_err "$cfg: too many network interfaces configured, ignoring $name"
-		return
-	}
-
 	append interfaces_arg "$netdev" ','
-	netdev_count=$((netdev_count++))
 }
 
 append_netdev() {
-	local netdev="$1" netdev_count
-	[ -z $netdev_count ] && netdev_count=0
+	local netdev="$1"
 
 	grep -qF "$netdev" /proc/net/dev || {
-		 _log "$cfg: interface $netdev not found so not monitoring"
+		 _log "$cfg: network device $netdev not found so not monitoring"
 		 return
 	}
 
-	[ $netdev_count -ge 4 ] && {
-		_err "$cfg: too many network interfaces configured, ignoring $name"
-		return
-	}
-
 	append interfaces_arg "$netdev" ','
-	netdev_count=$((netdev_count++))
 }
 
 append_arg() {
@@ -124,7 +104,6 @@ watch_interfaces() {
 	[ "$enabled" -gt 0 ] || return 0
 
 	config_get listen_interface "$cfg" listen_interface
-	config_get reload_interfaces "$cfg" interfaces
 
 }
 
@@ -145,15 +124,10 @@ service_triggers() {
 		# hence start not reload, this trigger will not affect running instances as another start will not change their procd command arguments
 		# or stop the already running process
 		procd_open_trigger
-		procd_add_interface_trigger "interface.*" $n /etc/init.d/mini_snmpd start
+		procd_add_interface_trigger "interface.*" $listen_interface /etc/init.d/mini_snmpd start
 		procd_close_trigger
 	}
-
-	for n in $reload_interfaces $listen_interface; do
-		procd_add_reload_interface_trigger $n
-	done
 }
-
 
 start_instance() {
 	local cfg
@@ -193,6 +167,14 @@ start_instance() {
 	procd_set_param command "$PROG" -n
  	procd_set_param stdout "1"
 	procd_set_param stderr "1"
+
+	# TODO Remove duplicate interface names
+	# FIXME Fix a case when both $listen_interface and $interfaces are empty
+	procd_open_trigger
+	for n in $listen_interface $interfaces; do
+		procd_add_interface_trigger "interface.*" $n /etc/init.d/mini_snmpd reload
+	done
+	procd_close_trigger
 
 	append_arg "-c" "$community"
 	append_arg "-L" "${location}"
