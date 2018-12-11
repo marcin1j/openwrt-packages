@@ -86,8 +86,7 @@ define Package/libow
   DEPENDS:= \
     +libpthread \
     +LIBOW_MASTER_USB:libusb-compat \
-    +LIBOW_MASTER_W1:kmod-w1 \
-    +libavahi-client
+    +LIBOW_MASTER_W1:kmod-w1
   TITLE:=OWFS - common shared library
 endef
 
@@ -192,6 +191,7 @@ CONFIGURE_ARGS += \
 	--disable-owphp \
 	--disable-owtcl \
 	--disable-swig \
+	--disable-avahi \
 	$(if $(CONFIG_LIBOW_MASTER_USB),--enable-usb,--disable-usb) \
 	$(if $(CONFIG_LIBOW_MASTER_W1),--enable-w1,--disable-w1) \
 	$(if $(CONFIG_LIBOW_MASTER_I2C),--enable-i2c,--disable-i2c) \
